@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helpdesk Peak Roster – Live Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: #f5f7fb;
+            padding: 1.5rem;
+        }
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        /* header */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #1a2b4c;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .header h1 span {
+            background: #f0c45a;
+            font-size: 1rem;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            color: #1a2b4c;
+            font-weight: 500;
+            margin-left: 0.8rem;
+        }
+        .live-badge {
+            background: #1e2f4f;
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .live-badge i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #2ecc71;
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        /* shift legend */
+        .shift-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem 2rem;
+            background: white;
+            padding: 1rem 1.8rem;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.03);
+            margin-bottom: 2rem;
+            border: 1px solid #eef2f6;
+        }
+        .shift-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        .shift-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+        }
+        .shift-color.a { background: #2d7bf0; }
+        .shift-color.b { background: #10b981; }
+        .shift-color.c { background: #8b5cf6; }
+        .shift-color.g { background: #f59e0b; }
+        .shift-time {
+            font-size: 0.85rem;
+            color: #5e6f8d;
+            margin-left: 6px;
+            font-weight: 400;
+        }
+        /* active counter */
+        .active-global {
+            background: #1e2f4f;
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+            border: 1px solid #2f4165;
+        }
+        .active-global .count {
+            background: #2ecc71;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 1.5rem;
+            margin-left: 6px;
+            color: white;
+            font-weight: 700;
+        }
+        /* team grid */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .team-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.2rem 0.8rem;
+            text-align: center;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.02);
+            border: 1px solid #e9eef3;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .team-card:hover {
+            transform: translateY(-3px);
+            border-color: #b6c8e0;
+            box-shadow: 0 12px 22px -8px rgba(29, 63, 118, 0.15);
+        }
+        .team-card.active {
+            border: 2px solid #1e2f4f;
+            background: #f9fcff;
+            box-shadow: 0 12px 22px -8px rgba(29, 63, 118, 0.25);
+        }
+        .team-card .team-name {
+            font-weight: 600;
+            color: #1a2b4c;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+        .team-card .team-size {
+            background: #eef4fe;
+            padding: 0.25rem 1rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e3f6e;
+        }
+        /* roster table */
+        .roster-section {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem 1.5rem 1rem 1.5rem;
+            box-shadow: 0 16px 30px -10px rgba(0,0,0,0.06);
+            border: 1px solid #e9eef3;
+            margin-top: 1rem;
+        }
+        .roster-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+        .roster-header h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1a2b4c;
+        }
+        .roster-header h2 small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #5e6f8d;
+            margin-left: 10px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 1000px;
+        }
+        th {
+            background: #f2f6fc;
+            color: #1e2f4f;
+            font-weight: 600;
+            padding: 0.8rem 0.5rem;
+            text-align: center;
+            border-bottom: 2px solid #d9e2ef;
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.7rem 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid #edf2f8;
+            color: #1f2e4a;
+            white-space: nowrap;
+        }
+        .employee-cell {
+            text-align: left;
+            font-weight: 500;
+            padding-left: 1rem;
+        }
+        .employee-cell .desig {
+            font-size: 0.75rem;
+            color: #6b7d9f;
+            margin-left: 6px;
+            font-weight: 400;
+        }
+        .employee-cell .phone {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7d9f;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+        .shift-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: white;
+            min-width: 32px;
+        }
+        .shift-badge.A { background: #2d7bf0; }
+        .shift-badge.B { background: #10b981; }
+        .shift-badge.C { background: #8b5cf6; }
+        .shift-badge.G { background: #f59e0b; }
+        .inactive-row {
+            background: #fff7f7;
+        }
+        .inactive-row td {
+            color: #9ca9bc;
+        }
+        .inactive-row .shift-badge {
+            opacity: 0.5;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.active { background: #2ecc71; box-shadow: 0 0 0 2px rgba(46,204,113,0.2); }
+        .status-dot.inactive { background: #ff5252; }
+        .empty-message {
+            padding: 3rem;
+            text-align: center;
+            color: #8a9bb8;
+            font-size: 1rem;
+        }
+        .footer-note {
+            margin-top: 1.5rem;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #9aabca;
+        }
+        .refresh-time {
+            font-weight: 400;
+            color: #8a9bb8;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <!-- HEADER -->
+    <div class="header">
+        <h1>📋 Helpdesk Peak Roster <span>LIVE</span></h1>
+        <div class="live-badge">
+            <i></i> real-time updates · <span id="clockDisplay">--:--:--</span>
+        </div>
+    </div>
+
+    <!-- SHIFT TIMING LEGEND -->
+    <div class="shift-legend">
+        <div class="shift-item"><span class="shift-color a"></span> A - Shift <span class="shift-time">7:00 AM – 4:00 PM</span></div>
+        <div class="shift-item"><span class="shift-color b"></span> B - Shift <span class="shift-time">1:00 PM – 10:00 PM</span></div>
+        <div class="shift-item"><span class="shift-color c"></span> C - Shift <span class="shift-time">10:00 PM – 7:00 AM</span></div>
+        <div class="shift-item"><span class="shift-color g"></span> G - Shift <span class="shift-time">9:30 AM – 6:30 PM</span></div>
+    </div>
+
+    <!-- GLOBAL ACTIVE COUNTER -->
+    <div class="active-global">
+        ✅ Total Active (right now) <span class="count" id="globalActiveCount">0</span>
+    </div>
+
+    <!-- TEAM CARDS (Job Role filters) -->
+    <div class="team-grid" id="teamGrid"></div>
+
+    <!-- ROSTER TABLE -->
+    <div class="roster-section">
+        <div class="roster-header">
+            <h2 id="teamTitle">Team Head <small id="teamSubtitle">all members</small></h2>
+            <div class="refresh-time" id="lastUpdated">Updated just now</div>
+        </div>
+        <div class="table-wrapper">
+            <table id="rosterTable">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Designation</th>
+                        <th>Phone</th>
+                        <th>Weekoff</th>
+                        <th>Transport</th>
+                        <th>2026-10-05</th>
+                        <th>2026-10-06</th>
+                        <th>2026-10-07</th>
+                        <th>2026-10-08</th>
+                        <th>2026-10-09</th>
+                        <th>2026-10-10</th>
+                        <th>2026-10-11</th>
+                        <th>2026-10-12</th>
+                        <th>2026-10-13</th>
+                        <th>2026-10-14</th>
+                        <th>2026-10-15</th>
+                        <th>2026-10-16</th>
+                        <th>2026-10-17</th>
+                        <th>2026-10-18</th>
+                        <th>2026-10-19</th>
+                        <th>2026-10-20</th>
+                        <th>2026-10-21</th>
+                        <th>2026-10-22</th>
+                        <th>2026-10-23</th>
+                        <th>2026-10-24</th>
+                        <th>2026-10-25</th>
+                        <th>2026-10-26</th>
+                        <th>2026-10-27</th>
+                        <th>2026-10-28</th>
+                        <th>2026-10-29</th>
+                        <th>2026-10-30</th>
+                        <th>2026-10-31</th>
+                        <th>2026-11-01</th>
+                        <th>2026-11-02</th>
+                        <th>2026-11-03</th>
+                        <th>2026-11-04</th>
+                        <th>2026-11-05</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- js populate -->
+                </tbody>
+            </table>
+        </div>
+        <div class="footer-note">
+            ⏱️ Active/Inactive based on shift timings • Real-time simulation
+        </div>
+    </div>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // ROSTER DATA
+    // --------------------------------------------------------------
+    const employees = [
+        { name: "Veeneet Jain", center: "Helpdesk", phone: "9999155881", empId: "SSN074043", designation: "Senior Manager", weekoff: "NA", jobRole: "Team Head", transport: "Car", shifts: Array(32).fill("G") },
+        { name: "Santosh", center: "Helpdesk", phone: "8980833233", empId: "SSN024322", designation: "Manager", weekoff: "NA", jobRole: "Placement and planning", transport: "Local transport", shifts: Array(32).fill("A") },
+        { name: "Sumit Upadhaya", center: "Helpdesk", phone: "7906954098", empId: "SSN087912", designation: "Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Local transport", shifts: Array(32).fill("C") },
+        { name: "Pratyush Jadon", center: "Helpdesk", phone: "8368550860", empId: "N297799", designation: "Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Local transport", shifts: Array(32).fill("B") },
+        { name: "Dharmendra Chauhan", center: "Helpdesk", phone: "7906560317", empId: "SSN040151", designation: "Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Metro", shifts: Array(32).fill("C") },
+        { name: "Rohit Kumar", center: "Helpdesk", phone: "7307304474", empId: "SSN024164", designation: "Sr.Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Local transport", shifts: Array(32).fill("A") },
+        { name: "Lalit Kumar Murrella", center: "Helpdesk", phone: "7838766787", empId: "N220856", designation: "Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Metro", shifts: Array(32).fill("C") },
+        { name: "Vasudhant Kumar", center: "Helpdesk", phone: "9045157099", empId: "SSN049182", designation: "Sr.Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Local transport", shifts: Array(32).fill("B") },
+        { name: "Aman Kumar", center: "Helpdesk", phone: "6396869953", empId: "N361745", designation: "Associate", weekoff: "NA", jobRole: "Placement and planning", transport: "Bike", shifts: Array(32).fill("A") },
+        { name: "Sanu", center: "Helpdesk", phone: "9953801957 / 9717156964", empId: "SSN018757", designation: "Manager", weekoff: "NA", jobRole: "Fund Operations", transport: "Walking Distance", shifts: Array(32).fill("G") },
+        { name: "Manish Maske", center: "Helpdesk", phone: "8285662271", empId: "SSN021669", designation: "Sr.Associate", weekoff: "NA", jobRole: "Fund Operations", transport: "Bike", shifts: Array(32).fill("A") },
+        { name: "Abhijit", center: "Helpdesk", phone: "8210115713", empId: "SSN021732", designation: "Sr.Associate", weekoff: "NA", jobRole: "Fund Operations", transport: "Metro", shifts: Array(32).fill("B") },
+        { name: "Vikas Sharma", center: "Helpdesk", phone: "8585958692", empId: "SSN030458", designation: "Associate", weekoff: "NA", jobRole: "Fund Operations", transport: "Metro", shifts: Array(32).fill("A") },
+        { name: "Rohit Singh", center: "Helpdesk", phone: "9971871622", empId: "SSN049181", designation: "Associate", weekoff: "NA", jobRole: "Fund Operations", transport: "Metro", shifts: Array(32).fill("C") },
+        { name: "Shivraj Singh Rathore", center: "Helpdesk", phone: "8851653871", empId: "N289240", designation: "Associate", weekoff: "NA", jobRole: "Fund Operations", transport: "Metro", shifts: Array(32).fill("C") },
+        { name: "Vishal Som", center: "Helpdesk", phone: "9761493077", empId: "SSN019632", designation: "Assistant Manager", weekoff: "NA", jobRole: "Tracking Operations", transport: "Bike", shifts: Array(32).fill("C") },
+        { name: "Sachin Rana", center: "Helpdesk", phone: "7017672678", empId: "SSN042074", designation: "Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Walking Distance", shifts: Array(32).fill("A") },
+        { name: "Yogesh Kumar", center: "Helpdesk", phone: "9971297218", empId: "N353231", designation: "Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Bike", shifts: Array(32).fill("A") },
+        { name: "Divyansh Mishra", center: "Helpdesk", phone: "8381933172", empId: "N312480", designation: "Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Metro", shifts: Array(32).fill("G") },
+        { name: "Jeevan Bisht", center: "Helpdesk", phone: "9891775622", empId: "SSN039186", designation: "Sr.Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Bike", shifts: Array(32).fill("B") },
+        { name: "Amit Rawat", center: "Helpdesk", phone: "8126564758", empId: "N208747", designation: "Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Metro", shifts: Array(32).fill("B") },
+        { name: "Komal Rawat", center: "Helpdesk", phone: "8527807395", empId: "SSN042557", designation: "Sr.Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Metro", shifts: Array(32).fill("C") },
+        { name: "Trivesh Kumar", center: "Helpdesk", phone: "7678613106", empId: "SSN047477", designation: "Associate", weekoff: "NA", jobRole: "Tracking Operations", transport: "Metro", shifts: Array(32).fill("C") }
+    ];
+
+    // date columns (2026-10-05 to 2026-11-05) - 32 days
+    const dateColumns = [
+        "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10",
+        "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16",
+        "2026-10-17", "2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22",
+        "2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28",
+        "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03",
+        "2026-11-04", "2026-11-05"
+    ];
+
+    // --- shift definitions (24h format) ---
+    const shiftTimings = {
+        A: { start: 7, end: 16 },    // 7am - 4pm
+        B: { start: 13, end: 22 },   // 1pm - 10pm
+        C: { start: 22, end: 7 },    // 10pm - 7am (next day)
+        G: { start: 9.5, end: 18.5 } // 9:30am - 6:30pm
+    };
+
+    // --------------------------------------------------------------
+    // state
+    let activeTeam = 'Team Head';
+    let updateInterval = null;
+
+    // --------------------------------------------------------------
+    // is employee active right now? (based on shift)
+    // --------------------------------------------------------------
+    function isEmployeeActiveNow(employee, now) {
+        let shiftCode = null;
+        const nowDate = new Date(now);
+        const rosterStart = new Date('2026-10-05');
+        const rosterEnd = new Date('2026-11-06');
+
+        if (nowDate >= rosterStart && nowDate < rosterEnd) {
+            const dayIndex = Math.floor((nowDate - rosterStart) / (1000*60*60*24));
+            if (dayIndex >= 0 && dayIndex < employee.shifts.length) {
+                shiftCode = employee.shifts[dayIndex];
+            }
+        }
+        if (!shiftCode) shiftCode = employee.shifts[0] || 'G';
+
+        const timing = shiftTimings[shiftCode];
+        if (!timing) return false;
+
+        const hours = nowDate.getHours() + nowDate.getMinutes() / 60;
+        const { start, end } = timing;
+
+        // handle overnight shift (C: 22 -> 7)
+        if (start > end) {
+            return hours >= start || hours < end;
+        } else {
+            return hours >= start && hours < end;
+        }
+    }
+
+    // --------------------------------------------------------------
+    // render team cards + table
+    // --------------------------------------------------------------
+    function renderDashboard() {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('en-IN', { hour12: false });
+
+        // group by jobRole
+        const teams = {};
+        employees.forEach(emp => {
+            if (!teams[emp.jobRole]) teams[emp.jobRole] = [];
+            teams[emp.jobRole].push(emp);
+        });
+        const teamNames = Object.keys(teams);
+
+        if (!teamNames.includes(activeTeam) && teamNames.length) activeTeam = teamNames[0];
+
+        // ----- GLOBAL ACTIVE COUNT -----
+        let globalActive = 0;
+        employees.forEach(emp => {
+            if (isEmployeeActiveNow(emp, now)) globalActive++;
+        });
+        document.getElementById('globalActiveCount').textContent = globalActive;
+
+        // ----- TEAM CARDS -----
+        const teamGrid = document.getElementById('teamGrid');
+        teamGrid.innerHTML = '';
+        teamNames.forEach(teamName => {
+            const members = teams[teamName];
+            const card = document.createElement('div');
+            card.className = `team-card ${teamName === activeTeam ? 'active' : ''}`;
+            card.innerHTML = `
+                <div class="team-name">${teamName}</div>
+                <div class="team-size">${members.length} members</div>
+            `;
+            card.addEventListener('click', () => {
+                activeTeam = teamName;
+                renderDashboard();
+            });
+            teamGrid.appendChild(card);
+        });
+
+        // ----- TABLE (active team employees) -----
+        const teamEmployees = teams[activeTeam] || [];
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        document.getElementById('teamTitle').innerHTML = `${activeTeam} <small id="teamSubtitle">${teamEmployees.length} members</small>`;
+
+        if (teamEmployees.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="40" class="empty-message">No employees in this team</td></tr>`;
+            return;
+        }
+
+        const sorted = [...teamEmployees].sort((a,b) => a.name.localeCompare(b.name));
+
+        sorted.forEach(emp => {
+            const active = isEmployeeActiveNow(emp, now);
+            const row = document.createElement('tr');
+            if (!active) row.classList.add('inactive-row');
+
+            const empCell = `
+                <td class="employee-cell">
+                    <span class="status-dot ${active ? 'active' : 'inactive'}"></span>
+                    ${emp.name}
+                    <span class="desig">${emp.designation}</span>
+                    <span class="phone">📞 ${emp.phone}</span>
+                </td>
+            `;
+
+            let shiftCells = '';
+            dateColumns.forEach((_, idx) => {
+                const shift = emp.shifts[idx] || emp.shifts[0];
+                shiftCells += `<td><span class="shift-badge ${shift}">${shift}</span></td>`;
+            });
+
+            row.innerHTML = `
+                ${empCell}
+                <td>${emp.designation}</td>
+                <td>${emp.phone}</td>
+                <td>${emp.weekoff}</td>
+                <td>${emp.transport}</td>
+                ${shiftCells}
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById('lastUpdated').textContent = `Updated ${now.toLocaleTimeString('en-IN', { hour12: false })}`;
+    }
+
+    // --------------------------------------------------------------
+    // auto retimer: update every 15 seconds
+    // --------------------------------------------------------------
+    function startAutoRefresh() {
+        if (updateInterval) clearInterval(updateInterval);
+        updateInterval = setInterval(() => {
+            renderDashboard();
+        }, 15000);
+    }
+
+    renderDashboard();
+    startAutoRefresh();
+
+    // clock update every second
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('en-IN', { hour12: false });
+    }, 1000);
+
+    window.addEventListener('focus', () => renderDashboard());
+</script>
+</body>
+</html>
